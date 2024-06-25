@@ -1,6 +1,12 @@
 import tkinter as tk
+from tkinter import *
+from tkinter.ttk import *
 from tkinter import ttk
 import pickle
+import cv2
+from PIL import Image, ImageTk
+import mediapipe as mp
+import numpy as np
 
 LARGEFONT = ("Verdana", 35)
 
@@ -10,7 +16,7 @@ class tkinterApp(tk.Tk):
         
         self.attributes('-fullscreen', True)
         self.bind('<Escape>', self.exit_fullscreen)
-        
+         
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
@@ -19,7 +25,7 @@ class tkinterApp(tk.Tk):
         self.frames = {}
 
         for F in (Page1, Page2):
-            frame = F(container, self)
+            frame = F(container, self, root=self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
@@ -35,8 +41,20 @@ class tkinterApp(tk.Tk):
 # Page 1 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 class Page1(tk.Frame):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, root, video_source=0):
+        
+        style = Style()
+        style.configure('TButton', font =
+                    ('calibri', 20, 'bold'),
+                            borderwidth = '4')
+        style.map('TButton', foreground = [('active', '!disabled', 'Blue')],
+                            background = [('active', 'black')])
+        
         tk.Frame.__init__(self, parent)
+        self.root = root
+        self.video_source = video_source
+        self.controller = controller
+        
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=2)
         self.grid_columnconfigure(1, weight=4)
@@ -50,22 +68,107 @@ class Page1(tk.Frame):
         subject.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
         subframe.grid(row=0, column=0, sticky="nsew")
 
-        button1 = ttk.Button(subframe, text="Page 2", command=lambda: controller.show_frame(Page2))
+        button1 = ttk.Button(subframe, text="Tekst naar Gebarentaal", command=lambda: controller.show_frame(Page2))
         button1.grid(row=0, column=0, padx=10, pady=10, sticky="n")
 
-        subframe2 = tk.Frame(self, background="darkgray")
-        message = tk.Label(subframe2, text="Message")
+        subframe = tk.Frame(self, background="darkgray")
+        message = tk.Label(subframe, text="Message")
         message.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-        subframe2.grid(row=0, column=1, sticky="nsew")
+        subframe.grid(row=0, column=1, sticky="nsew")
 
-    #Page 1 Functions
+        self.canvas = tk.Canvas(subframe, width=750, height=550, bg='white')
+        self.canvas.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
+        # Load the hand recognition model
+        self.model_dict = pickle.load(open('./model.p', 'rb'))
+        self.model = self.model_dict['model']
 
+        # Set up MediaPipe Hands
+        self.mp_hands = mp.solutions.hands
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.mp_drawing_styles = mp.solutions.drawing_styles 
+        self.hands = self.mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.3)
+        self.labels_dict = {0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G',
+                            7: 'H', 8: 'I', 9: 'J', 10: 'K', 11: 'L', 12: 'M', 13: 'N',
+                            14: 'O', 15: 'P', 16: 'Q', 17: 'R', 18: 'S', 19: 'T', 20: 'U', 21: 'V',
+                            22: 'W', 23: 'X', 24: 'Y'}
+
+        # Set up the video source
+        self.vid = cv2.VideoCapture(video_source)
+        self.photo = None
+        self.update()
+
+    def update(self):
+        ret, frame = self.vid.read()
+        if ret:
+            # Convert the frame to RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            results = self.hands.process(frame_rgb)
+            data_aux = []
+            x_ = []
+            y_ = []
+            H, W, _ = frame.shape
+
+            if results.multi_hand_landmarks:
+                for hand_landmarks in results.multi_hand_landmarks[:2]:
+                    self.mp_drawing.draw_landmarks(
+                        frame_rgb, hand_landmarks, self.mp_hands.HAND_CONNECTIONS, 
+                        self.mp_drawing_styles.get_default_hand_landmarks_style(),
+                        self.mp_drawing_styles.get_default_hand_connections_style()
+                    )
+
+                    for i in range(len(hand_landmarks.landmark)):
+                        x = hand_landmarks.landmark[i].x
+                        y = hand_landmarks.landmark[i].y
+                        x_.append(x)
+                        y_.append(y)
+
+                    for i in range(len(hand_landmarks.landmark)):
+                        x = hand_landmarks.landmark[i].x
+                        y = hand_landmarks.landmark[i].y
+                        data_aux.append(x - min(x_))
+                        data_aux.append(y - min(y_))
+
+                x1 = int(min(x_) * W)
+                y1 = int(min(y_) * H)
+                x2 = int(max(x_) * W)
+                y2 = int(max(y_) * H)
+
+                if len(data_aux) == 42:
+                    data_aux.extend([0] * 42)
+
+                if len(data_aux) == 84:
+                    prediction = self.model.predict([np.asarray(data_aux)])
+                    predicted_character = self.labels_dict[int(prediction[0])]
+
+                    cv2.rectangle(frame_rgb, (x1, y1), (x2, y2), (0, 0, 0), 4)
+                    cv2.putText(frame_rgb, predicted_character, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (0, 0, 0), 3, cv2.LINE_AA)
+                else:
+                    print(f"Unexpected feature vector size: {len(data_aux)}")
+
+            # Resize frame to fit the canvas
+            frame_rgb = cv2.resize(frame_rgb, (750, 550))
+            
+            # Convert the image to a format Tkinter can use
+            image = Image.fromarray(frame_rgb)
+            self.photo = ImageTk.PhotoImage(image)
+
+            # Update the canvas with the new frame
+            self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
+
+        # Call update method again after 10 ms
+        self.root.after(10, self.update)
+
+    def __del__(self):
+        if self.vid.isOpened():
+            self.vid.release()
+        self.hands.close()
 
 # Page 2 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 class Page2(tk.Frame):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, root=None):
         tk.Frame.__init__(self, parent)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=2)
@@ -80,13 +183,21 @@ class Page2(tk.Frame):
         subject.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
         subframe.grid(row=0, column=0, sticky="nsew")
 
-        button1 = ttk.Button(subframe, text="Page 1", command=lambda: controller.show_frame(Page1))
+        button1 = ttk.Button(subframe, text="Gebarentaal naar Tekst", command=lambda: controller.show_frame(Page1))
         button1.grid(row=0, column=0, padx=10, pady=10, sticky="n")
 
         self.inputtxt = tk.Text(subframe, height=5, width=30, bg="white")
         self.inputtxt.grid(row=1, column=0, padx=10, pady=10, sticky="n")
 
-        self.printButton = tk.Button(subframe, text="Translate", command=self.update_and_draw)
+        style = Style()
+        style.configure('TButton', font =
+                    ('calibri', 20, 'bold'),
+                            borderwidth = '4')
+        style.map('TButton', foreground = [('active', '!disabled', 'Blue')],
+                            background = [('active', 'black')])
+        
+
+        self.printButton = ttk.Button(subframe, text="Translate", command=self.update_and_draw)
         self.printButton.grid(row=2, column=0, padx=10, pady=10, sticky="n")
 
         subframe2 = tk.Frame(self, background="darkgray")
