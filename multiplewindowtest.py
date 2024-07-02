@@ -91,7 +91,7 @@ class Page1(tk.Frame):
         self.labels_dict = {0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G',
                             7: 'H', 8: 'I', 9: 'J', 10: 'K', 11: 'L', 12: 'M', 13: 'N',
                             14: 'O', 15: 'P', 16: 'Q', 17: 'R', 18: 'S', 19: 'T', 20: 'U', 21: 'V',
-                            22: 'W', 23: 'X', 24: 'Y'}
+                            22: 'W', 23: 'X', 24: 'Y', 25: 'Z'}
 
         # Set up the video source
         self.vid = cv2.VideoCapture(video_source)
@@ -263,19 +263,19 @@ class Page2(tk.Frame):
         elif input_text == "C" or input_text == "c":
             dataint = 7000
         elif input_text == "D" or input_text == "d":
-            dataint = 10800
+            dataint = 11700
         elif input_text == "E" or input_text == "e":
-            dataint = 11200
-        elif input_text == "F" or input_text == "f":
-            dataint = 12200
-        elif input_text == "G" or input_text == "g":
             dataint = 12600
-        elif input_text == "H" or input_text == "h":
+        elif input_text == "F" or input_text == "f":
             dataint = 13000
-        elif input_text == "I" or input_text == "i":
+        elif input_text == "G" or input_text == "g":
             dataint = 13500
+        elif input_text == "H" or input_text == "h":
+            dataint = 14000
+        elif input_text == "I" or input_text == "i":
+            dataint = 14500
         elif input_text == "J" or input_text == "j":
-            dataint = None
+            dataint = 15500
         elif input_text == "K" or input_text == "k":
             dataint = 1500
         elif input_text == "L" or input_text == "l":
@@ -307,7 +307,7 @@ class Page2(tk.Frame):
         elif input_text == "Y" or input_text == "y":
             dataint = 10200
         elif input_text == "Z" or input_text == "z":
-            dataint = None
+            dataint = 11200
         else:
             dataint = None  
         self.drawhand()
