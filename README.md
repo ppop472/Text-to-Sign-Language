@@ -1,5 +1,5 @@
 # Signlator
-Text to Sign Language Project Di-Labs
+Tekst naar Gebarentaal / Gebarentaal naar Tekst Project Di-Labs
 
 # Hoe moet je het gebruiken?
 
