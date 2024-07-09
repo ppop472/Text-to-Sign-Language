@@ -1,7 +1,7 @@
-# Text-to-Sign-Language
+# Signlator
 Text to Sign Language Project Di-Labs
 
-# How to use
+# Hoe moet je het gebruiken?
 
 * Stap 1: Download Python 3.12.1
 
@@ -11,4 +11,6 @@ Text to Sign Language Project Di-Labs
 
 * Stap 4: Run the "main.py".
 
-# ![Screenshot of a comment on a GitHub issue showing an image, added in the Markdown, of an Octocat smiling and raising a tentacle.](/../main/SignLaguage.png)
+# Gebarentaal tekeningen
+
+![Screenshot of a comment on a GitHub issue showing an image, added in the Markdown, of an Octocat smiling and raising a tentacle.](/../main/SignLaguage.png)
